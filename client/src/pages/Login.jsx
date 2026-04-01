@@ -56,7 +56,7 @@ export default function Login() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="text-5xl mb-3">🏀</div>
-          <h1 className="text-3xl font-bold text-white">Ballers App</h1>
+          <h1 className="text-3xl font-bold text-white">Habonim Ballers App</h1>
           <p className="text-gray-400 mt-1">{mode === "login" ? "Welcome back! Let's run it." : "Join the crew 🙌"}</p>
         </div>
 
