@@ -1,0 +1,128 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  admin
+  player
+}
+
+enum Status {
+  active
+  inactive
+}
+
+enum AlertTiming {
+  one_hour
+  three_hours
+  morning
+}
+
+model User {
+  id                 Int          @id @default(autoincrement())
+  name               String
+  username           String       @unique
+  passwordHash       String
+  shirtNumber        Int?         @unique
+  status             Status       @default(active)
+  role               Role         @default(player)
+  whatsappNumber     String?
+  whatsappAlerts     Boolean      @default(false)
+  alertTiming        AlertTiming  @default(one_hour)
+  createdAt          DateTime     @default(now())
+
+  // Relations
+  sessionsCreated    Session[]
+  attendance         Attendance[]
+  ratingsGiven       Rating[]     @relation("RatingsGiven")
+  ratingsReceived    Rating[]     @relation("RatingsReceived")
+  feedbackGiven      Feedback[]   @relation("FeedbackGiven")
+  feedbackReceived   Feedback[]   @relation("FeedbackReceived")
+  teamMembers        TeamMember[]
+}
+
+model Session {
+  id          Int          @id @default(autoincrement())
+  date        DateTime
+  location    String?
+  status      String       @default("upcoming") // upcoming | completed
+  createdBy   User         @relation(fields: [createdById], references: [id])
+  createdById Int
+  createdAt   DateTime     @default(now())
+
+  // Relations
+  attendance  Attendance[]
+  ratings     Rating[]
+  feedback    Feedback[]
+  teams       Team[]
+}
+
+model Attendance {
+  id        Int      @id @default(autoincrement())
+  session   Session  @relation(fields: [sessionId], references: [id])
+  sessionId Int
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+  confirmed Boolean  @default(false)
+
+  @@unique([sessionId, userId])
+}
+
+model Rating {
+  id            Int      @id @default(autoincrement())
+  session       Session  @relation(fields: [sessionId], references: [id])
+  sessionId     Int
+  rater         User     @relation("RatingsGiven", fields: [raterId], references: [id])
+  raterId       Int
+  ratedUser     User     @relation("RatingsReceived", fields: [ratedUserId], references: [id])
+  ratedUserId   Int
+  isAnonymous   Boolean  @default(false)
+  athleticism   Int
+  shooting      Int
+  passing       Int
+  defense       Int
+  basketballIq  Int
+  hustle        Int
+  vibe          Int
+  size          Int
+  createdAt     DateTime @default(now())
+
+  @@unique([sessionId, raterId, ratedUserId])
+}
+
+model Feedback {
+  id          Int      @id @default(autoincrement())
+  session     Session  @relation(fields: [sessionId], references: [id])
+  sessionId   Int
+  fromUser    User     @relation("FeedbackGiven", fields: [fromUserId], references: [id])
+  fromUserId  Int
+  toUser      User     @relation("FeedbackReceived", fields: [toUserId], references: [id])
+  toUserId    Int
+  isAnonymous Boolean  @default(false)
+  message     String   @db.VarChar(200)
+  createdAt   DateTime @default(now())
+}
+
+model Team {
+  id        Int          @id @default(autoincrement())
+  session   Session      @relation(fields: [sessionId], references: [id])
+  sessionId Int
+  teamNumber Int
+
+  members   TeamMember[]
+}
+
+model TeamMember {
+  id     Int  @id @default(autoincrement())
+  team   Team @relation(fields: [teamId], references: [id])
+  teamId Int
+  user   User @relation(fields: [userId], references: [id])
+  userId Int
+
+  @@unique([teamId, userId])
+}
