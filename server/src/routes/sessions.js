@@ -11,7 +11,7 @@ router.get("/", requireAuth, async (req, res) => {
       orderBy: { date: "desc" },
       include: {
         createdBy: { select: { name: true } },
-        attendance: { include: { user: { select: { id: true, name: true, shirtNumber: true } } } },
+        attendance: { include: { user: { select: { id: true, name: true, shirtNumber: true, status: true } } } },
       },
     });
     res.json(sessions);
