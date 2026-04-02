@@ -1,16 +1,31 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import MarkAttendanceModal from "./MarkAttendanceModal";
 
+const TEAM_COLORS = [
+  { bg: "bg-orange-900/40", text: "text-orange-300", label: "Team 1 🟠" },
+  { bg: "bg-blue-900/40",   text: "text-blue-300",   label: "Team 2 🔵" },
+  { bg: "bg-green-900/40",  text: "text-green-300",  label: "Team 3 🟢" },
+  { bg: "bg-purple-900/40", text: "text-purple-300", label: "Team 4 🟣" },
+];
+
 export default function SessionCard({ session, currentUser, onAttend, onRefresh }) {
   const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
+  const [teams, setTeams] = useState([]);
+
   const isAttending = session.attendance?.some(
     a => a.user.id === currentUser?.id && a.confirmed
   );
   const attendees = session.attendance?.filter(a => a.confirmed) || [];
   const isUpcoming = session.status === "upcoming";
+
+  useEffect(() => {
+    api.get(`/teams/session/${session.id}`)
+      .then(({ data }) => setTeams(data))
+      .catch(() => setTeams([]));
+  }, [session.id]);
 
   const handleComplete = async () => {
     try {
@@ -53,7 +68,12 @@ export default function SessionCard({ session, currentUser, onAttend, onRefresh 
 
       {/* Attendees */}
       <div className="mb-4">
-        <p className="text-gray-400 text-xs mb-1">Who's in ({attendees.length})</p>
+        <p className="text-gray-400 text-xs mb-1">
+          Who's in ({attendees.length}{session.maxPlayers ? `/${session.maxPlayers}` : ""})
+          {session.maxPlayers && attendees.length >= session.maxPlayers
+            ? <span className="text-red-400 ml-2">Session full! 🚫</span>
+            : null}
+        </p>
         <div className="flex flex-wrap gap-2">
           {attendees.length === 0 ? (
             <span className="text-gray-500 text-sm">Nobody confirmed yet 👀</span>
@@ -66,6 +86,31 @@ export default function SessionCard({ session, currentUser, onAttend, onRefresh 
           )}
         </div>
       </div>
+
+      {/* Teams */}
+      {teams.length > 0 && (
+        <div className="mb-4">
+          <p className="text-gray-400 text-xs mb-2">Tonight's Teams 🎲</p>
+          <div className="grid grid-cols-2 gap-2">
+            {teams.map((team, i) => {
+              const c = TEAM_COLORS[i] || { bg: "bg-gray-800", text: "text-gray-300", label: `Team ${i + 1}` };
+              return (
+                <div key={team.id} className={`rounded-xl p-3 ${c.bg}`}>
+                  <p className={`text-xs font-bold mb-1 ${c.text}`}>{c.label}</p>
+                  <div className="space-y-0.5">
+                    {team.members.map(m => (
+                      <p key={m.user.id} className="text-white text-xs">
+                        {m.user.shirtNumber ? <span className="text-gray-400">#{m.user.shirtNumber} </span> : ""}
+                        {m.user.name}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Actions */}
       {isUpcoming && (
