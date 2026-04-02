@@ -7,7 +7,7 @@ const BASE = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
 export default function Login() {
   const [mode, setMode] = useState("login"); // "login" | "register"
-  const [form, setForm] = useState({ name: "", username: "", password: "", shirtNumber: "" });
+  const [form, setForm] = useState({ name: "", username: "", password: "", shirtNumber: "", weight: "", height: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -34,6 +34,8 @@ export default function Login() {
           username: form.username,
           password: form.password,
           shirtNumber: form.shirtNumber || undefined,
+          weight: form.weight,
+          height: form.height,
         });
         // Auto login after register
         const { data } = await axios.post(`${BASE}/auth/login`, {
@@ -56,7 +58,7 @@ export default function Login() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="text-5xl mb-3">🏀</div>
-          <h1 className="text-3xl font-bold text-white">Habonim Ballers App</h1>
+          <h1 className="text-3xl font-bold text-white">Ballers App</h1>
           <p className="text-gray-400 mt-1">{mode === "login" ? "Welcome back! Let's run it." : "Join the crew 🙌"}</p>
         </div>
 
@@ -87,6 +89,20 @@ export default function Login() {
                 <input name="shirtNumber" value={form.shirtNumber} onChange={handleChange}
                   placeholder="23" type="number"
                   className="w-full bg-brand-dark text-white rounded-xl px-4 py-3 outline-none border border-gray-700 focus:border-brand-orange transition" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-gray-300 text-sm mb-1 block">Weight (kg) *</label>
+                  <input name="weight" value={form.weight} onChange={handleChange}
+                    placeholder="80" type="number"
+                    className="w-full bg-brand-dark text-white rounded-xl px-4 py-3 outline-none border border-gray-700 focus:border-brand-orange transition" />
+                </div>
+                <div>
+                  <label className="text-gray-300 text-sm mb-1 block">Height (cm) *</label>
+                  <input name="height" value={form.height} onChange={handleChange}
+                    placeholder="180" type="number"
+                    className="w-full bg-brand-dark text-white rounded-xl px-4 py-3 outline-none border border-gray-700 focus:border-brand-orange transition" />
+                </div>
               </div>
             </>
           )}

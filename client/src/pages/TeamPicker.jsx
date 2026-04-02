@@ -8,14 +8,25 @@ const TEAM_COLORS = [
 ];
 
 function balanceTeams(players) {
-  // Sort by overall descending, snake-draft into 2 teams
-  const sorted = [...players].sort((a, b) =>
-    parseFloat(b.averages?.overall || 0) - parseFloat(a.averages?.overall || 0)
-  );
+  // Compute a combined score: skill (overall) + physical score (weight + height normalized)
+  const withScore = players.map(p => {
+    const skill = parseFloat(p.averages?.overall || 5);
+    const weight = parseFloat(p.weight || 75);
+    const height = parseFloat(p.height || 175);
+    // Normalize physical: weight 50-120kg, height 160-210cm
+    const physicalScore = ((weight - 50) / 70 + (height - 160) / 50) * 2.5;
+    return { ...p, _score: skill + physicalScore };
+  });
+
+  // Sort by combined score descending, snake-draft into 2 teams
+  const sorted = withScore.sort((a, b) => b._score - a._score);
   const teams = [[], []];
   sorted.forEach((p, i) => {
-    // Snake draft: 0,1,1,0,0,1,1,0...
     const slot = Math.floor(i / 2) % 2 === 0 ? i % 2 : 1 - (i % 2);
+    teams[slot].push(p);
+  });
+  return teams;
+}floor(i / 2) % 2 === 0 ? i % 2 : 1 - (i % 2);
     teams[slot].push(p);
   });
   return teams;

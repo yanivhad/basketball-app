@@ -7,15 +7,24 @@ const router = express.Router();
 
 // POST /api/auth/register
 router.post("/register", async (req, res) => {
-  const { name, username, password, shirtNumber, role } = req.body;
+  const { name, username, password, shirtNumber, role, weight, height } = req.body;
 
-  if (!name || !username || !password)
-    return res.status(400).json({ error: "Name, username and password are required" });
+  if (!name || !username || !password || !weight || !height)
+    return res.status(400).json({ error: "Name, username, password, weight and height are required" });
 
   try {
     const existing = await prisma.user.findUnique({ where: { username } });
     if (existing)
       return res.status(409).json({ error: "Username already taken" });
+
+    // Check shirt number uniqueness among active users
+    if (shirtNumber) {
+      const shirtTaken = await prisma.user.findFirst({
+        where: { shirtNumber: parseInt(shirtNumber), status: "active" },
+      });
+      if (shirtTaken)
+        return res.status(409).json({ error: `Shirt #${shirtNumber} is already taken by an active player` });
+    }
 
     const passwordHash = await bcrypt.hash(password, 10);
 
@@ -26,6 +35,8 @@ router.post("/register", async (req, res) => {
         passwordHash,
         shirtNumber: shirtNumber ? parseInt(shirtNumber) : null,
         role: role === "admin" ? "admin" : "player",
+        weight: parseFloat(weight),
+        height: parseFloat(height),
       },
     });
 

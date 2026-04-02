@@ -28,9 +28,11 @@ model User {
   name               String
   username           String       @unique
   passwordHash       String
-  shirtNumber        Int?         @unique
+  shirtNumber        Int?
   status             Status       @default(active)
   role               Role         @default(player)
+  weight             Float?
+  height             Float?
   whatsappNumber     String?
   whatsappAlerts     Boolean      @default(false)
   alertTiming        AlertTiming  @default(one_hour)
@@ -89,7 +91,6 @@ model Rating {
   basketballIq  Int
   hustle        Int
   vibe          Int
-  size          Int
   createdAt     DateTime @default(now())
 
   @@unique([sessionId, raterId, ratedUserId])
