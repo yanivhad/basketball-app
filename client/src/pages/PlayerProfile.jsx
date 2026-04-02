@@ -11,7 +11,6 @@ const CATEGORIES = [
   { key: "basketballIq", label: "🧠 Basketball IQ" },
   { key: "hustle",       label: "🔥 Hustle" },
   { key: "vibe",         label: "😎 Vibe" },
-  { key: "size",         label: "💪 Size" },
 ];
 
 export default function PlayerProfile() {

@@ -7,10 +7,10 @@ import {
 } from "recharts";
 
 const TABS = ["🏆 Rankings", "📅 Attendance", "🗓️ Sessions"];
-const CATS = ["athleticism","shooting","passing","defense","basketballIq","hustle","vibe","size"];
+const CATS = ["athleticism","shooting","passing","defense","basketballIq","hustle","vibe"];
 const CAT_LABELS = {
   athleticism: "Athletic", shooting: "Shooting", passing: "Passing",
-  defense: "Defense", basketballIq: "IQ", hustle: "Hustle", vibe: "Vibe", size: "Size"
+  defense: "Defense", basketballIq: "IQ", hustle: "Hustle", vibe: "Vibe"
 };
 
 export default function StatsHub() {

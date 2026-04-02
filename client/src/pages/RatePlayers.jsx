@@ -12,7 +12,6 @@ const CATEGORIES = [
   { key: "basketballIq",label: "🧠 Basketball IQ" },
   { key: "hustle",      label: "🔥 Hustle" },
   { key: "vibe",        label: "😎 Vibe" },
-  { key: "size",        label: "💪 Size" },
 ];
 
 const defaultScores = () => Object.fromEntries(CATEGORIES.map(c => [c.key, 5]));
