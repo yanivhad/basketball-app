@@ -9,6 +9,15 @@ export default function SessionCard({ session, currentUser, onAttend, onRefresh 
   const attendees = session.attendance?.filter(a => a.confirmed) || [];
   const isUpcoming = session.status === "upcoming";
 
+  const handleComplete = async () => {
+    try {
+      await api.patch(`/sessions/${session.id}/complete`);
+      onRefresh();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const handleReopen = async () => {
     try {
       await api.patch(`/sessions/${session.id}/reopen`);
