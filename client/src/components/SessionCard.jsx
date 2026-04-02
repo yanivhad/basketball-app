@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
+import MarkAttendanceModal from "./MarkAttendanceModal";
 
 export default function SessionCard({ session, currentUser, onAttend, onRefresh }) {
   const navigate = useNavigate();
+  const [showModal, setShowModal] = useState(false);
   const isAttending = session.attendance?.some(
     a => a.user.id === currentUser?.id && a.confirmed
   );
@@ -86,7 +89,7 @@ export default function SessionCard({ session, currentUser, onAttend, onRefresh 
                 🎲 Teams
               </button>
               <button
-                onClick={handleComplete}
+                onClick={() => setShowModal(true)}
                 className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-xl text-sm transition"
               >
                 ✅
@@ -112,6 +115,14 @@ export default function SessionCard({ session, currentUser, onAttend, onRefresh 
             </button>
           )}
         </div>
+      )}
+
+      {showModal && (
+        <MarkAttendanceModal
+          session={session}
+          onClose={() => setShowModal(false)}
+          onDone={() => { setShowModal(false); onRefresh(); }}
+        />
       )}
     </div>
   );

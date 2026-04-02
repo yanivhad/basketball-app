@@ -21,7 +21,7 @@ router.get("/", requireAuth, async (req, res) => {
     const withStats = users.map(u => {
       const r = u.ratingsReceived;
       const avg = key => r.length ? (r.reduce((s, x) => s + x[key], 0) / r.length).toFixed(1) : null;
-      const cats = ["athleticism","shooting","passing","defense","basketballIq","hustle","vibe","size"];
+      const cats = ["athleticism","shooting","passing","defense","basketballIq","hustle","vibe"];
       const overall = r.length
         ? (cats.reduce((s, k) => s + parseFloat(avg(k)), 0) / cats.length).toFixed(1)
         : null;
@@ -56,7 +56,6 @@ router.get("/:id", requireAuth, async (req, res) => {
         shirtNumber: true, role: true, status: true, createdAt: true,
         ratingsReceived: true,
         attendance: {
-          where: { confirmed: true },
           include: { session: { select: { date: true, status: true } } },
         },
         feedbackReceived: {
@@ -73,7 +72,7 @@ router.get("/:id", requireAuth, async (req, res) => {
 
     const r = u.ratingsReceived;
     const avg = key => r.length ? (r.reduce((s, x) => s + x[key], 0) / r.length).toFixed(1) : null;
-    const cats = ["athleticism","shooting","passing","defense","basketballIq","hustle","vibe","size"];
+    const cats = ["athleticism","shooting","passing","defense","basketballIq","hustle","vibe"];
     const overall = r.length
       ? (cats.reduce((s, k) => s + parseFloat(avg(k)), 0) / cats.length).toFixed(1)
       : null;
@@ -104,9 +103,22 @@ router.get("/:id", requireAuth, async (req, res) => {
 
 // PATCH /api/users/:id/settings — update WhatsApp settings
 router.patch("/:id/settings", requireAuth, async (req, res) => {
-  const { whatsappNumber, whatsappAlerts, alertTiming } = req.body;
+  const { whatsappNumber, whatsappAlerts, alertTiming, shirtNumber } = req.body;
   if (req.user.userId !== parseInt(req.params.id))
     return res.status(403).json({ error: "You can only update your own settings" });
+
+  // Check shirt number uniqueness among active users (excluding self)
+  if (shirtNumber) {
+    const shirtTaken = await prisma.user.findFirst({
+      where: {
+        shirtNumber: parseInt(shirtNumber),
+        status: "active",
+        NOT: { id: parseInt(req.params.id) },
+      },
+    });
+    if (shirtTaken)
+      return res.status(409).json({ error: `Shirt #${shirtNumber} is already taken by an active player` });
+  }
 
   try {
     const user = await prisma.user.update({

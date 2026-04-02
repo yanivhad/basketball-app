@@ -40,7 +40,7 @@ export default function RatePlayers() {
         const session = data.find(s => s.id === parseInt(sessionId));
         if (!session) return navigate("/dashboard");
         const others = session.attendance
-          .filter(a => a.confirmed && a.user.id !== user.id)
+          .filter(a => a.actuallyPlayed && a.user.id !== user.id)
           .map(a => a.user);
         setPlayers(others);
       } catch (err) {

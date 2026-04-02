@@ -9,9 +9,9 @@ router.get("/pending", requireAuth, async (req, res) => {
   try {
     const userId = req.user.userId;
 
-    // Find completed sessions where user attended
+    // Find completed sessions where user actually played
     const attended = await prisma.attendance.findMany({
-      where: { userId, confirmed: true, session: { status: "completed" } },
+      where: { userId, actuallyPlayed: true, session: { status: "completed" } },
       include: {
         session: {
           include: {

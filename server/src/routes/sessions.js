@@ -44,7 +44,29 @@ router.post("/", requireAuth, requireAdmin, async (req, res) => {
 
 // PATCH /api/sessions/:id/complete — mark session as completed (admin only)
 router.patch("/:id/complete", requireAuth, requireAdmin, async (req, res) => {
+  const { actualPlayerIds } = req.body; // array of user IDs who actually showed up
   try {
+    // Update all attendance records for this session
+    const attendance = await prisma.attendance.findMany({
+      where: { sessionId: parseInt(req.params.id) },
+    });
+
+    for (const a of attendance) {
+      await prisma.attendance.update({
+        where: { id: a.id },
+        data: { actuallyPlayed: actualPlayerIds.includes(a.userId) },
+      });
+    }
+
+    // Also create attendance records for anyone who showed up but didn't confirm
+    for (const userId of actualPlayerIds) {
+      await prisma.attendance.upsert({
+        where: { sessionId_userId: { sessionId: parseInt(req.params.id), userId } },
+        update: { actuallyPlayed: true },
+        create: { sessionId: parseInt(req.params.id), userId, confirmed: false, actuallyPlayed: true },
+      });
+    }
+
     const session = await prisma.session.update({
       where: { id: parseInt(req.params.id) },
       data: { status: "completed" },

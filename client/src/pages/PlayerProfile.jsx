@@ -64,18 +64,26 @@ export default function PlayerProfile() {
             {player.name}
           </h1>
           <p className="text-gray-400 text-sm mt-1">@{player.username}</p>
-          <div className="flex justify-center gap-6 mt-4">
+          <div className="flex justify-center gap-4 mt-4 flex-wrap">
             <div className="text-center">
               <p className="text-2xl font-bold text-brand-orange">{player.averages?.overall ?? "—"}</p>
               <p className="text-gray-400 text-xs">Overall</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-white">{player.attendanceCount}</p>
-              <p className="text-gray-400 text-xs">Games</p>
+              <p className="text-2xl font-bold text-white">{player.actuallyPlayedCount ?? 0}</p>
+              <p className="text-gray-400 text-xs">Showed Up</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-white">{player.totalRatings}</p>
-              <p className="text-gray-400 text-xs">Ratings</p>
+              <p className="text-2xl font-bold text-white">{player.attendanceCount ?? 0}</p>
+              <p className="text-gray-400 text-xs">Confirmed</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-red-400">{player.noShowCount ?? 0}</p>
+              <p className="text-gray-400 text-xs">No Shows 👻</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-green-400">{player.surpriseShowCount ?? 0}</p>
+              <p className="text-gray-400 text-xs">Surprise Shows 🎉</p>
             </div>
           </div>
         </div>
