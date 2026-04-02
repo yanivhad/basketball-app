@@ -9,9 +9,9 @@ export default function SessionCard({ session, currentUser, onAttend, onRefresh 
   const attendees = session.attendance?.filter(a => a.confirmed) || [];
   const isUpcoming = session.status === "upcoming";
 
-  const handleComplete = async () => {
+  const handleReopen = async () => {
     try {
-      await api.patch(`/sessions/${session.id}/complete`);
+      await api.patch(`/sessions/${session.id}/reopen`);
       onRefresh();
     } catch (err) {
       console.error(err);
@@ -87,12 +87,22 @@ export default function SessionCard({ session, currentUser, onAttend, onRefresh 
         </div>
       )}
       {!isUpcoming && (
-        <button
-          onClick={() => navigate(`/rate/${session.id}`)}
-          className="w-full bg-brand-orange hover:bg-orange-600 text-white font-bold py-2 rounded-xl text-sm transition"
-        >
-          ⭐ Rate Players
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => navigate(`/rate/${session.id}`)}
+            className="flex-1 bg-brand-orange hover:bg-orange-600 text-white font-bold py-2 rounded-xl text-sm transition"
+          >
+            ⭐ Rate Players
+          </button>
+          {currentUser?.role === "admin" && (
+            <button
+              onClick={handleReopen}
+              className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-xl text-sm transition"
+            >
+              🔄 Reopen
+            </button>
+          )}
+        </div>
       )}
     </div>
   );

@@ -53,6 +53,7 @@ model Session {
   date        DateTime
   location    String?
   status      String       @default("upcoming") // upcoming | completed
+  maxPlayers  Int?
   createdBy   User         @relation(fields: [createdById], references: [id])
   createdById Int
   createdAt   DateTime     @default(now())

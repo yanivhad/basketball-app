@@ -2,7 +2,7 @@ import { useState } from "react";
 import api from "../api/axios";
 
 export default function CreateSessionModal({ onClose, onCreated }) {
-  const [form, setForm] = useState({ date: "", time: "20:00", location: "" });
+  const [form, setForm] = useState({ date: "", time: "20:00", location: "", maxPlayers: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -15,6 +15,7 @@ export default function CreateSessionModal({ onClose, onCreated }) {
       await api.post("/sessions", {
         date: `${form.date}T${form.time}:00`,
         location: form.location || undefined,
+        maxPlayers: form.maxPlayers || undefined,
       });
       onCreated();
     } catch (err) {
@@ -49,6 +50,14 @@ export default function CreateSessionModal({ onClose, onCreated }) {
             <input
               type="text" name="location" value={form.location} onChange={handleChange}
               placeholder="e.g. The usual court"
+              className="w-full bg-brand-dark text-white rounded-xl px-4 py-3 outline-none border border-gray-700 focus:border-brand-orange transition"
+            />
+          </div>
+          <div>
+            <label className="text-gray-300 text-sm mb-1 block">Max Players (optional)</label>
+            <input
+              type="number" name="maxPlayers" value={form.maxPlayers} onChange={handleChange}
+              placeholder="e.g. 10"
               className="w-full bg-brand-dark text-white rounded-xl px-4 py-3 outline-none border border-gray-700 focus:border-brand-orange transition"
             />
           </div>
