@@ -54,7 +54,7 @@ export default function Dashboard() {
       {/* Navbar */}
       <nav className="flex items-center justify-between px-6 py-4 bg-brand-card shadow">
         <div className="flex items-center gap-2 text-xl font-bold">
-          <span>🏀</span> Ballers App
+          <span>🏀</span> Habonim Ballers App
         </div>
         <span className="text-gray-400 text-sm">Hey {user?.name}! 👋</span>
       </nav>
