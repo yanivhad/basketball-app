@@ -9,13 +9,16 @@ router.get("/pending", requireAuth, async (req, res) => {
   try {
     const userId = req.user.userId;
 
-    // Find completed sessions where user actually played
+    // Find completed sessions where user actually played, most recent first
     const attended = await prisma.attendance.findMany({
       where: { userId, actuallyPlayed: true, session: { status: "completed" } },
       include: {
         session: {
           include: {
-            attendance: { where: { confirmed: true } },
+            attendance: {
+              where: { actuallyPlayed: true },
+              include: { user: { select: { id: true, status: true } } },
+            },
           },
         },
       },
@@ -24,28 +27,40 @@ router.get("/pending", requireAuth, async (req, res) => {
 
     if (!attended.length) return res.json({ pending: null });
 
-    // Check the most recent completed session they attended
-    const lastSession = attended[0].session;
-    const otherPlayers = lastSession.attendance.filter(a => a.userId !== userId);
+    // Go through sessions from most recent and find one with pending ratings
+    for (const att of attended) {
+      const session = att.session;
 
-    if (!otherPlayers.length) return res.json({ pending: null });
+      const otherActivePlayers = session.attendance.filter(
+        a => a.userId !== userId && a.user.status === "active"
+      );
 
-    // Check if user has already rated anyone in that session
-    const ratingsGiven = await prisma.rating.count({
-      where: { sessionId: lastSession.id, raterId: userId },
-    });
+      if (!otherActivePlayers.length) continue;
 
-    if (ratingsGiven >= otherPlayers.length) return res.json({ pending: null });
+      const ratingsGiven = await prisma.rating.count({
+        where: {
+          sessionId: session.id,
+          raterId: userId,
+          ratedUserId: { in: otherActivePlayers.map(a => a.userId) },
+        },
+      });
 
-    res.json({
-      pending: {
-        sessionId: lastSession.id,
-        date: lastSession.date,
-        location: lastSession.location,
-        rated: ratingsGiven,
-        total: otherPlayers.length,
-      },
-    });
+      if (ratingsGiven < otherActivePlayers.length) {
+        return res.json({
+          pending: {
+            sessionId: session.id,
+            date: session.date,
+            location: session.location,
+            rated: ratingsGiven,
+            total: otherActivePlayers.length,
+          },
+        });
+      }
+    }
+
+    // All sessions fully rated
+    return res.json({ pending: null });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Something went wrong" });
@@ -88,7 +103,6 @@ router.get("/session/:sessionId", requireAuth, async (req, res) => {
       },
     });
 
-    // hide rater name if anonymous
     const sanitized = ratings.map(r => ({
       ...r,
       rater: r.isAnonymous ? { name: "Anonymous" } : r.rater,
