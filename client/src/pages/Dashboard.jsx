@@ -4,7 +4,18 @@ import useAuthStore from "../store/useAuthStore";
 import api from "../api/axios";
 import SessionCard from "../components/SessionCard";
 import CreateSessionModal from "../components/CreateSessionModal";
-import { CardSkeleton } from "../components/Skeleton";
+import PendingRatingBanner from "../components/PendingRatingBanner";
+
+function CardSkeleton() {
+  return (
+    <div className="bg-brand-card rounded-2xl p-5 space-y-3 animate-pulse">
+      <div className="h-5 w-1/2 bg-gray-700 rounded-xl" />
+      <div className="h-4 w-3/4 bg-gray-700 rounded-xl" />
+      <div className="h-4 w-2/3 bg-gray-700 rounded-xl" />
+      <div className="h-10 w-full bg-gray-700 rounded-xl mt-2" />
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const { user, logout } = useAuthStore();
@@ -50,6 +61,9 @@ export default function Dashboard() {
 
       {/* Main */}
       <div className="max-w-2xl mx-auto px-4 py-8">
+
+        {/* Pending rating banner */}
+        <PendingRatingBanner />
 
         {/* Header */}
         <div className="flex items-center justify-between mb-6">

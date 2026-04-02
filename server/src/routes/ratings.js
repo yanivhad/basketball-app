@@ -4,6 +4,54 @@ import { requireAuth } from "../middleware/auth.js";
 
 const router = express.Router();
 
+// GET /api/ratings/pending — check if current user has a completed session they haven't rated yet
+router.get("/pending", requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    // Find completed sessions where user attended
+    const attended = await prisma.attendance.findMany({
+      where: { userId, confirmed: true, session: { status: "completed" } },
+      include: {
+        session: {
+          include: {
+            attendance: { where: { confirmed: true } },
+          },
+        },
+      },
+      orderBy: { session: { date: "desc" } },
+    });
+
+    if (!attended.length) return res.json({ pending: null });
+
+    // Check the most recent completed session they attended
+    const lastSession = attended[0].session;
+    const otherPlayers = lastSession.attendance.filter(a => a.userId !== userId);
+
+    if (!otherPlayers.length) return res.json({ pending: null });
+
+    // Check if user has already rated anyone in that session
+    const ratingsGiven = await prisma.rating.count({
+      where: { sessionId: lastSession.id, raterId: userId },
+    });
+
+    if (ratingsGiven >= otherPlayers.length) return res.json({ pending: null });
+
+    res.json({
+      pending: {
+        sessionId: lastSession.id,
+        date: lastSession.date,
+        location: lastSession.location,
+        rated: ratingsGiven,
+        total: otherPlayers.length,
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Something went wrong" });
+  }
+});
+
 // POST /api/ratings — submit ratings for a player
 router.post("/", requireAuth, async (req, res) => {
   const { sessionId, ratedUserId, isAnonymous, athleticism, shooting, passing, defense, basketballIq, hustle, vibe } = req.body;
@@ -19,8 +67,8 @@ router.post("/", requireAuth, async (req, res) => {
   try {
     const rating = await prisma.rating.upsert({
       where: { sessionId_raterId_ratedUserId: { sessionId, raterId, ratedUserId } },
-      update: { isAnonymous, athleticism, shooting, passing, defense, basketballIq, hustle, vibe, size },
-      create: { sessionId, raterId, ratedUserId, isAnonymous: isAnonymous || false, athleticism, shooting, passing, defense, basketballIq, hustle, vibe, size },
+      update: { isAnonymous, athleticism, shooting, passing, defense, basketballIq, hustle, vibe },
+      create: { sessionId, raterId, ratedUserId, isAnonymous: isAnonymous || false, athleticism, shooting, passing, defense, basketballIq, hustle, vibe },
     });
     res.status(201).json({ message: "Rating submitted 🌟", rating });
   } catch (err) {
@@ -75,8 +123,8 @@ router.get("/user/:userId", requireAuth, async (req, res) => {
         basketballIq: avg("basketballIq"),
         hustle: avg("hustle"),
         vibe: avg("vibe"),
-        overall: (["athleticism","shooting","passing","defense","basketballIq","hustle","vibe","size"]
-          .reduce((s, k) => s + parseFloat(avg(k)), 0) / 8).toFixed(1),
+        overall: (["athleticism","shooting","passing","defense","basketballIq","hustle","vibe"]
+          .reduce((s, k) => s + parseFloat(avg(k)), 0) / 7).toFixed(1),
       },
     });
   } catch (err) {
