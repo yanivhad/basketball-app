@@ -8,4 +8,5 @@ export default defineConfig({
   migrate: {
     //url: "postgresql://postgres:postgres@localhost:5432/basketballapp",
     url: process.env.DATABASE_URL,
+  },
 });
