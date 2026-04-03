@@ -7,6 +7,5 @@ export default defineConfig({
   schema: path.join("prisma", "schema.prisma"),
   migrate: {
     //url: "postgresql://postgres:postgres@localhost:5432/basketballapp",
-    url: "postgresql://postgres:IklMTppGnORhRmSfEISewzXWgvSXCkbE@postgres.railway.internal:5432/basketballapp",
-  },
+    url: process.env.DATABASE_URL,
 });
