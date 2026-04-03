@@ -15,13 +15,22 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cors({
-  origin: [
-    'https://basketball-app-peach.vercel.app',
-    'http://localhost:3000',
-    'http://localhost:3001',
-  ],
+  origin: (origin, callback) => {
+    const allowed = [
+      'https://basketball-app-peach.vercel.app',
+      'http://localhost:3000',
+      'http://localhost:3001',
+    ];
+    // Allow any Vercel preview deployment
+    if (!origin || allowed.includes(origin) || origin.endsWith('.vercel.app')) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
 }));
+
 app.use(express.json());
 
 // Routes
