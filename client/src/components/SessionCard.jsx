@@ -23,7 +23,7 @@ export default function SessionCard({ session, currentUser, onAttend, onRefresh 
 
   useEffect(() => {
     api.get(`/teams/session/${session.id}`)
-      .then(({ data }) => setTeams(data))
+      .then(({ data }) => setTeams(Array.isArray(data) ? data : data.teams || []))
       .catch(() => setTeams([]));
   }, [session.id]);
 
