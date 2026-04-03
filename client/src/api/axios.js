@@ -2,7 +2,7 @@ import axios from "axios";
 
 const api = axios.create({
   //baseURL: "https://basketball-app-production-125f.up.railway.app:3001/api",
-  baseURL: "http://localhost:3001/api",
+  baseURL: process.env.REACT_APP_API_URL,
 });
 
 api.interceptors.request.use((config) => {
