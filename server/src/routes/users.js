@@ -13,7 +13,7 @@ router.get("/", requireAuth, async (req, res) => {
         id: true, name: true, username: true,
         shirtNumber: true, role: true, status: true, createdAt: true,
         ratingsReceived: true,
-        attendance: { where: { confirmed: true } },
+attendance: { where: { confirmed: true, session: { status: "completed" } } },
       },
       orderBy: { name: "asc" },
     });
@@ -55,9 +55,10 @@ router.get("/:id", requireAuth, async (req, res) => {
         id: true, name: true, username: true,
         shirtNumber: true, role: true, status: true, createdAt: true,
         ratingsReceived: true,
-        attendance: {
-          include: { session: { select: { date: true, status: true } } },
-        },
+     attendance: {
+  where: { session: { status: "completed" } },
+  include: { session: { select: { date: true, status: true } } },
+},
         feedbackReceived: {
           orderBy: { createdAt: "desc" },
           include: {
