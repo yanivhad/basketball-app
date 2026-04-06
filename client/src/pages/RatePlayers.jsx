@@ -24,7 +24,7 @@ export default function RatePlayers() {
   const [players, setPlayers] = useState([]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [scores, setScores] = useState(defaultScores());
-  const [isAnonymous, setIsAnonymous] = useState(false);
+const [isAnonymous, setIsAnonymous] = useState(true);
   const [feedback, setFeedback] = useState("");
   const [feedbackAnon, setFeedbackAnon] = useState(false);
   const [submitted, setSubmitted] = useState([]);
