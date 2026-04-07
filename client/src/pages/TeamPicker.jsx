@@ -185,7 +185,7 @@ export default function TeamPicker() {
             {remainder > 0 ? " + " + remainder + " on bench" : ""}
           </p>
           <div className="flex gap-2">
-            {[3, 4, 5, 6, 7].map(function(n) {
+            {[3, 4, 5].map(function(n) {
               return (
                 <button key={n} onClick={() => { setPlayersPerTeam(n); setTeams(null); setSaved(false); }}
                   className={"flex-1 py-2 rounded-xl text-sm font-bold transition " + (playersPerTeam === n ? "bg-brand-orange text-white" : "bg-gray-700 text-gray-400 hover:text-white")}>
