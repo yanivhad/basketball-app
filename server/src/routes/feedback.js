@@ -6,7 +6,7 @@ const router = express.Router();
 
 // POST /api/feedback — leave feedback for a player
 router.post("/", requireAuth, async (req, res) => {
-  const { sessionId, toUserId, message, isAnonymous } = req.body;
+  const { sessionId, toUserId, message } = req.body;
   const fromUserId = req.user.userId;
 
   if (!message || message.trim().length === 0)
@@ -20,7 +20,7 @@ router.post("/", requireAuth, async (req, res) => {
 
   try {
     const feedback = await prisma.feedback.create({
-      data: { sessionId, fromUserId, toUserId, message: message.trim(), isAnonymous: isAnonymous || false },
+      data: { sessionId, fromUserId, toUserId, message: message.trim() },
     });
     res.status(201).json({ message: "Feedback sent 💬", feedback });
   } catch (err) {

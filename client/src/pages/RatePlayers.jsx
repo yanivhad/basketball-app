@@ -24,10 +24,7 @@ export default function RatePlayers() {
   const [players, setPlayers] = useState([]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [scores, setScores] = useState(defaultScores());
-const [isAnonymous, setIsAnonymous] = useState(true);
   const [feedback, setFeedback] = useState("");
-  const [feedbackAnon, setFeedbackAnon] = useState(false);
-  const [submitted, setSubmitted] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
@@ -61,7 +58,6 @@ const [isAnonymous, setIsAnonymous] = useState(true);
       await api.post("/ratings", {
         sessionId: parseInt(sessionId),
         ratedUserId: current.id,
-        isAnonymous,
         ...scores,
       });
       if (feedback.trim()) {
@@ -69,18 +65,14 @@ const [isAnonymous, setIsAnonymous] = useState(true);
           sessionId: parseInt(sessionId),
           toUserId: current.id,
           message: feedback.trim(),
-          isAnonymous: feedbackAnon,
         });
       }
-      setSubmitted(s => [...s, current.id]);
       if (currentIdx + 1 >= players.length) {
         setDone(true);
       } else {
         setCurrentIdx(i => i + 1);
         setScores(defaultScores());
-        setIsAnonymous(false);
         setFeedback("");
-        setFeedbackAnon(false);
       }
     } catch (err) {
       console.error(err);
@@ -133,15 +125,6 @@ const [isAnonymous, setIsAnonymous] = useState(true);
           ))}
         </div>
 
-        {/* Anonymous toggle */}
-        <div className="bg-brand-card rounded-2xl p-4 mb-4 flex items-center justify-between">
-          <span className="text-gray-300 text-sm">Post anonymously?</span>
-          <button onClick={() => setIsAnonymous(a => !a)}
-            className={`w-12 h-6 rounded-full transition-colors ${isAnonymous ? "bg-brand-orange" : "bg-gray-600"}`}>
-            <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform mx-0.5 ${isAnonymous ? "translate-x-6" : "translate-x-0"}`} />
-          </button>
-        </div>
-
         {/* Optional feedback */}
         <div className="bg-brand-card rounded-2xl p-4 mb-6">
           <label className="text-gray-300 text-sm mb-2 block">Leave a note (optional)</label>
@@ -150,14 +133,7 @@ const [isAnonymous, setIsAnonymous] = useState(true);
             maxLength={200} rows={2} placeholder="Something they did well, or could improve..."
             className="w-full bg-brand-dark text-white rounded-xl px-4 py-3 outline-none border border-gray-700 focus:border-brand-orange transition resize-none text-sm"
           />
-          <div className="flex items-center justify-between mt-2">
-            <div className="flex items-center gap-2">
-              <button onClick={() => setFeedbackAnon(a => !a)}
-                className={`w-10 h-5 rounded-full transition-colors ${feedbackAnon ? "bg-brand-orange" : "bg-gray-600"}`}>
-                <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform mx-0.5 ${feedbackAnon ? "translate-x-5" : "translate-x-0"}`} />
-              </button>
-              <span className="text-gray-400 text-xs">Anonymous note</span>
-            </div>
+          <div className="flex justify-end mt-2">
             <span className="text-gray-500 text-xs">{feedback.length}/200</span>
           </div>
         </div>

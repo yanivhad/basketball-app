@@ -8,7 +8,6 @@ export default function Players() {
   const [allPlayers, setAllPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showInactive, setShowInactive] = useState(false);
-  const [showNames, setShowNames] = useState(false);  // ← add this
   const { user } = useAuthStore();
   const navigate = useNavigate();
 
@@ -56,12 +55,6 @@ export default function Players() {
     {showInactive ? "Inactive Players 💤" : "Leaderboard 🏆"}
   </h1>
   <div className="flex items-center gap-2">
-    {!showInactive && (
-      <button onClick={() => setShowNames(s => !s)}
-        className="text-xs font-bold px-3 py-1.5 rounded-full border border-gray-600 text-gray-400 hover:text-white hover:border-gray-400 transition">
-        {showNames ? "🙈 Hide Names" : "👁 Show Names"}
-      </button>
-    )}
     {user?.role === "admin" && (
       <button onClick={() => setShowInactive(s => !s)}
         className="text-xs font-bold px-3 py-1.5 rounded-full border border-gray-600 text-gray-400 hover:text-white hover:border-gray-400 transition">
@@ -81,10 +74,8 @@ export default function Players() {
           <div className="space-y-3">
             {sorted.map((p, i) => (
             <div key={p.id}
-  onClick={() => (showNames || showInactive || p.id === user?.id) && navigate(`/players/${p.id}`)}
-  className={`bg-brand-card rounded-2xl p-4 flex items-center gap-4 transition ${
-    showNames || showInactive || p.id === user?.id ? "cursor-pointer hover:bg-opacity-80" : "cursor-default"
-  }`}
+  onClick={() => navigate(`/players/${p.id}`)}
+  className="bg-brand-card rounded-2xl p-4 flex items-center gap-4 transition cursor-pointer hover:bg-opacity-80"
 >
                 {/* Rank */}
                 <span className="text-2xl font-bold text-gray-500 w-8 text-center">
@@ -96,18 +87,9 @@ export default function Players() {
                 {/* Info */}
              <div className="flex-1">
   <p className="font-bold text-white">
-    {showNames || showInactive ? (
-      <>
-        {p.shirtNumber ? <span className="text-brand-orange">#{p.shirtNumber} </span> : ""}
-        {p.name}
-        {p.id === user?.id && <span className="text-xs text-gray-400 ml-2">(you)</span>}
-      </>
-    ) : (
-      <span className="text-gray-400 italic">
-        Player {i + 1}
-        {p.id === user?.id && <span className="text-xs text-gray-400 ml-2">(you)</span>}
-      </span>
-    )}
+    {p.shirtNumber ? <span className="text-brand-orange">#{p.shirtNumber} </span> : ""}
+    {p.name}
+    {p.id === user?.id && <span className="text-xs text-gray-400 ml-2">(you)</span>}
   </p>
   <p className="text-gray-400 text-xs mt-0.5">
     {p.attendanceCount} games · {p.totalRatings} ratings

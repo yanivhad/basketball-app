@@ -69,7 +69,7 @@ router.get("/pending", requireAuth, async (req, res) => {
 
 // POST /api/ratings — submit ratings for a player
 router.post("/", requireAuth, async (req, res) => {
-  const { sessionId, ratedUserId, isAnonymous, athleticism, shooting, passing, defense, basketballIq, hustle, vibe } = req.body;
+  const { sessionId, ratedUserId, athleticism, shooting, passing, defense, basketballIq, hustle, vibe } = req.body;
   const raterId = req.user.userId;
 
   if (raterId === ratedUserId)
@@ -82,8 +82,8 @@ router.post("/", requireAuth, async (req, res) => {
   try {
     const rating = await prisma.rating.upsert({
       where: { sessionId_raterId_ratedUserId: { sessionId, raterId, ratedUserId } },
-      update: { isAnonymous, athleticism, shooting, passing, defense, basketballIq, hustle, vibe },
-      create: { sessionId, raterId, ratedUserId, isAnonymous: isAnonymous || false, athleticism, shooting, passing, defense, basketballIq, hustle, vibe },
+      update: { athleticism, shooting, passing, defense, basketballIq, hustle, vibe },
+      create: { sessionId, raterId, ratedUserId, athleticism, shooting, passing, defense, basketballIq, hustle, vibe },
     });
     res.status(201).json({ message: "Rating submitted 🌟", rating });
   } catch (err) {
@@ -103,12 +103,7 @@ router.get("/session/:sessionId", requireAuth, async (req, res) => {
       },
     });
 
-    const sanitized = ratings.map(r => ({
-      ...r,
-      rater: r.isAnonymous ? { name: "Anonymous" } : r.rater,
-    }));
-
-    res.json(sanitized);
+    res.json(ratings);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Something went wrong" });

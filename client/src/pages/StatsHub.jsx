@@ -70,7 +70,6 @@ export default function StatsHub() {
 
 /* ── Rankings Tab ── */
 function RankingsTab({ players, selectedPlayer, setSelectedPlayer, navigate }) {
-    const [showNames, setShowNames] = useState(false);  // ← add this
   const sorted = [...players].sort((a, b) =>
     parseFloat(b.averages?.overall || 0) - parseFloat(a.averages?.overall || 0)
   );
@@ -83,31 +82,21 @@ function RankingsTab({ players, selectedPlayer, setSelectedPlayer, navigate }) {
     <div className="space-y-6">
       {/* Leaderboard */}
       <div className="bg-brand-card rounded-2xl p-5">
-<div className="flex items-center justify-between mb-4">
-  <h2 className="font-bold text-lg">Overall Leaderboard 🏆</h2>
-  <button onClick={() => setShowNames(s => !s)}
-    className="text-xs font-bold px-3 py-1.5 rounded-full border border-gray-600 text-gray-400 hover:text-white hover:border-gray-400 transition">
-    {showNames ? "🙈 Hide Names" : "👁 Show Names"}
-  </button>
-</div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-bold text-lg">Overall Leaderboard 🏆</h2>
+        </div>
         <div className="space-y-2">
-          {sorted.map((p, i) => (
-         <div key={p.id}
-  onClick={() => showNames && setSelectedPlayer(p.id)}
-  className={`flex items-center gap-3 p-3 rounded-xl transition ${
-    showNames ? "cursor-pointer" : "cursor-default"
-  } ${selectedPlayer === p.id && showNames ? "bg-brand-orange/20 border border-brand-orange/40" : "hover:bg-gray-700/40"}`}>
-  ...
-  <span className="flex-1 font-bold text-sm">
-    {showNames ? (
-      <>
-        {p.shirtNumber ? <span className="text-brand-orange">#{p.shirtNumber} </span> : ""}
-        {p.name}
-      </>
-    ) : (
-      <span className="text-gray-400 italic">Player {i + 1}</span>
-    )}
-  </span>
+          {sorted.map((p) => (
+            <div key={p.id}
+              onClick={() => setSelectedPlayer(p.id)}
+              className={`flex items-center gap-3 p-3 rounded-xl transition cursor-pointer ${
+                selectedPlayer === p.id ? "bg-brand-orange/20 border border-brand-orange/40" : "hover:bg-gray-700/40"
+              }`}>
+              ...
+              <span className="flex-1 font-bold text-sm">
+                {p.shirtNumber ? <span className="text-brand-orange">#{p.shirtNumber} </span> : ""}
+                {p.name}
+              </span>
               <div className="flex gap-3 text-xs text-gray-400">
                 <span>{p.attendanceCount} games</span>
               </div>
@@ -121,7 +110,7 @@ function RankingsTab({ players, selectedPlayer, setSelectedPlayer, navigate }) {
       </div>
 
       {/* Radar chart for selected player */}
-      {showNames && player && radarData.length > 0 && (
+      {player && radarData.length > 0 && (
         <div className="bg-brand-card rounded-2xl p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-bold text-lg">
