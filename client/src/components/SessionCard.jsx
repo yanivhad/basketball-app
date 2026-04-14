@@ -125,21 +125,19 @@ export default function SessionCard({ session, currentUser, onAttend, onRefresh 
           >
             {isAttending ? "I'm out 😔" : "I'm in! 🙌"}
           </button>
+          <button
+            onClick={() => navigate(`/teams/${session.id}`)}
+            className="bg-blue-700 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-xl text-sm transition"
+          >
+            🎲 Teams
+          </button>
           {currentUser?.role === "admin" && (
-            <>
-              <button
-                onClick={() => navigate(`/teams/${session.id}`)}
-                className="bg-blue-700 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-xl text-sm transition"
-              >
-                🎲 Teams
-              </button>
-              <button
-                onClick={() => setShowModal(true)}
-                className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-xl text-sm transition"
-              >
-                ✅
-              </button>
-            </>
+            <button
+              onClick={() => setShowModal(true)}
+              className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-xl text-sm transition"
+            >
+              ✅
+            </button>
           )}
         </div>
       )}

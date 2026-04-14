@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../api/axios";
+import useAuthStore from "../store/useAuthStore";
 
 const TEAM_COLORS = [
   { light: "bg-orange-900/40", text: "text-orange-300", label: "Team 1 🟠" },
@@ -52,6 +53,8 @@ function teamAvg(team) {
 export default function TeamPicker() {
   const { sessionId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === "admin";
 
   const [allPlayers, setAllPlayers] = useState([]);
   const [selected, setSelected] = useState([]);
@@ -62,7 +65,7 @@ export default function TeamPicker() {
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const MAX_SHUFFLES = 3;
+  const MAX_SHUFFLES = 2;
 
   useEffect(() => {
     async function fetchData() {
@@ -163,7 +166,8 @@ export default function TeamPicker() {
 
         <div className="bg-brand-card rounded-2xl p-5">
           <h2 className="font-bold text-lg mb-1">Who is playing tonight?</h2>
-          <p className="text-gray-400 text-sm mb-4">Tap to toggle. Everyone confirmed is pre-selected.</p>
+          <p className="text-gray-400 text-sm mb-1">All confirmed attendees are pre-selected.</p>
+          <p className="text-gray-500 text-xs mb-4">Uncheck players to exclude from teams — this won't affect their event attendance.</p>
           <div className="flex flex-wrap gap-2">
             {allPlayers.map(function(p) {
               const on = selected.includes(p.id);
@@ -249,10 +253,12 @@ export default function TeamPicker() {
             )}
 
             <div className="flex gap-3">
-              <button onClick={handleSave} disabled={saving || saved}
-                className={"flex-1 font-bold py-3 rounded-xl transition " + (saved ? "bg-green-700 text-white" : "bg-gray-700 hover:bg-gray-600 text-white")}>
-                {saved ? "Saved!" : saving ? "Saving..." : "Save Teams"}
-              </button>
+              {isAdmin && (
+                <button onClick={handleSave} disabled={saving || saved}
+                  className={"flex-1 font-bold py-3 rounded-xl transition " + (saved ? "bg-green-700 text-white" : "bg-gray-700 hover:bg-gray-600 text-white")}>
+                  {saved ? "Saved!" : saving ? "Saving..." : "Save Teams"}
+                </button>
+              )}
               <button onClick={handleShare}
                 className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl transition">
                 Share on WhatsApp
