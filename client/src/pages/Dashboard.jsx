@@ -72,14 +72,12 @@ export default function Dashboard() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">Game Nights 🗓️</h1>
-          {user?.role === "admin" && (
-            <button
-              onClick={() => setShowModal(true)}
-              className="bg-brand-orange hover:bg-orange-600 text-white font-bold px-4 py-2 rounded-xl transition text-sm"
-            >
-              + New Session
-            </button>
-          )}
+          <button
+            onClick={() => setShowModal(true)}
+            className="bg-brand-orange hover:bg-orange-600 text-white font-bold px-4 py-2 rounded-xl transition text-sm"
+          >
+            + New Session
+          </button>
         </div>
 
         {/* Sessions */}

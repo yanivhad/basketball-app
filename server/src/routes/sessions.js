@@ -1,6 +1,6 @@
 import express from "express";
 import prisma from "../prismaClient.js";
-import { requireAuth, requireAdmin } from "../middleware/auth.js";
+import { requireAuth } from "../middleware/auth.js";
 
 const router = express.Router();
 
@@ -21,8 +21,8 @@ router.get("/", requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/sessions — create a session (admin only)
-router.post("/", requireAuth, requireAdmin, async (req, res) => {
+// POST /api/sessions — create a session (any authenticated user)
+router.post("/", requireAuth, async (req, res) => {
   const { date, location, maxPlayers } = req.body;
   if (!date) return res.status(400).json({ error: "Date is required" });
 
@@ -42,10 +42,14 @@ router.post("/", requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
-// PATCH /api/sessions/:id/complete — mark session as completed (admin only)
-router.patch("/:id/complete", requireAuth, requireAdmin, async (req, res) => {
+// PATCH /api/sessions/:id/complete — mark session as completed (creator only)
+router.patch("/:id/complete", requireAuth, async (req, res) => {
   const { actualPlayerIds } = req.body; // array of user IDs who actually showed up
   try {
+    const session = await prisma.session.findUnique({ where: { id: parseInt(req.params.id) } });
+    if (!session) return res.status(404).json({ error: "Session not found" });
+    if (session.createdById !== req.user.userId)
+      return res.status(403).json({ error: "Only the session creator can do this" });
     // Update all attendance records for this session
     const attendance = await prisma.attendance.findMany({
       where: { sessionId: parseInt(req.params.id) },
@@ -78,9 +82,14 @@ router.patch("/:id/complete", requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
-// PATCH /api/sessions/:id/reopen — reopen a completed session (admin only)
-router.patch("/:id/reopen", requireAuth, requireAdmin, async (req, res) => {
+// PATCH /api/sessions/:id/reopen — reopen a completed session (creator only)
+router.patch("/:id/reopen", requireAuth, async (req, res) => {
   try {
+    const owned = await prisma.session.findUnique({ where: { id: parseInt(req.params.id) } });
+    if (!owned) return res.status(404).json({ error: "Session not found" });
+    if (owned.createdById !== req.user.userId)
+      return res.status(403).json({ error: "Only the session creator can do this" });
+
     const session = await prisma.session.update({
       where: { id: parseInt(req.params.id) },
       data: { status: "upcoming" },

@@ -217,7 +217,7 @@ function SessionsTab({ sessions }) {
   const upcoming  = sessions.filter(s => s.status === "upcoming");
 
   const sessionData = completed.slice(0, 8).reverse().map(s => ({
-    date: new Date(s.date).toLocaleDateString("en-GB", { day: "numeric", month: "short" }),
+    date: new Date(s.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "Asia/Jerusalem" }),
     players: s.attendance?.filter(a => a.confirmed).length || 0,
   }));
 
@@ -270,7 +270,7 @@ function SessionsTab({ sessions }) {
                 <div key={s.id} className="flex items-center justify-between py-2 border-b border-gray-700 last:border-0">
                   <div>
                     <p className="text-white text-sm font-bold">
-                      {new Date(s.date).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}
+                      {new Date(s.date).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "Asia/Jerusalem" })}
                     </p>
                     {s.location && <p className="text-gray-500 text-xs">📍 {s.location}</p>}
                   </div>

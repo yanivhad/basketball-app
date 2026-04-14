@@ -53,11 +53,11 @@ export default function SessionCard({ session, currentUser, onAttend, onRefresh 
         <div>
           <p className="text-white font-bold text-lg">
             {new Date(session.date).toLocaleDateString("en-GB", {
-              weekday: "long", day: "numeric", month: "long"
+              weekday: "long", day: "numeric", month: "long", timeZone: "Asia/Jerusalem"
             })}
           </p>
           <p className="text-gray-400 text-sm">
-            🕗 {new Date(session.date).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+            🕗 {new Date(session.date).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
             {session.location && ` · 📍 ${session.location}`}
           </p>
         </div>
@@ -131,7 +131,7 @@ export default function SessionCard({ session, currentUser, onAttend, onRefresh 
           >
             🎲 Teams
           </button>
-          {currentUser?.role === "admin" && (
+          {currentUser?.id === session.createdById && (
             <button
               onClick={() => setShowModal(true)}
               className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-xl text-sm transition"
@@ -149,7 +149,7 @@ export default function SessionCard({ session, currentUser, onAttend, onRefresh 
           >
             ⭐ Rate Players
           </button>
-          {currentUser?.role === "admin" && (
+          {currentUser?.id === session.createdById && (
             <button
               onClick={handleReopen}
               className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-xl text-sm transition"
