@@ -41,16 +41,7 @@ export default function PlayerProfile() {
       <nav className="flex items-center justify-between px-6 py-4 bg-brand-card shadow">
         <button onClick={() => navigate(-1)} className="text-gray-400 hover:text-white transition">← Back</button>
         <span className="font-bold">Player Profile</span>
-        {me?.role === "admin" && me.id !== player.id && (
-          <button onClick={handleToggleStatus}
-            className={`text-xs font-bold px-3 py-1 rounded-full transition ${
-              player.status === "active"
-                ? "bg-red-900 text-red-300 hover:bg-red-800"
-                : "bg-green-900 text-green-300 hover:bg-green-800"
-            }`}>
-            {player.status === "active" ? "Deactivate" : "Activate"}
-          </button>
-        )}
+        <span />
       </nav>
 
       <div className="max-w-lg mx-auto px-4 py-8 space-y-5">
@@ -58,10 +49,22 @@ export default function PlayerProfile() {
         {/* Header */}
         <div className="bg-brand-card rounded-2xl p-6 text-center">
           <div className="text-5xl mb-3">🏀</div>
-          <h1 className="text-2xl font-bold">
-            {player.shirtNumber && <span className="text-brand-orange">#{player.shirtNumber} </span>}
-            {player.name}
-          </h1>
+          <div className="flex items-center justify-center gap-3">
+            <h1 className="text-2xl font-bold">
+              {player.shirtNumber && <span className="text-brand-orange">#{player.shirtNumber} </span>}
+              {player.name}
+            </h1>
+            {me?.role === "admin" && me.id !== player.id && (
+              <button onClick={handleToggleStatus}
+                className={`text-xs font-bold px-3 py-1 rounded-full transition shrink-0 ${
+                  player.status === "active"
+                    ? "bg-red-900 text-red-300 hover:bg-red-800"
+                    : "bg-green-900 text-green-300 hover:bg-green-800"
+                }`}>
+                {player.status === "active" ? "Deactivate" : "Activate"}
+              </button>
+            )}
+          </div>
           <p className="text-gray-400 text-sm mt-1">@{player.username}</p>
           <div className="flex justify-center gap-4 mt-4 flex-wrap">
             <div className="text-center">

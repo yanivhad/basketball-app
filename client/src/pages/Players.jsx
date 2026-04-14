@@ -20,17 +20,6 @@ export default function Players() {
 
   useEffect(() => { fetchPlayers(); }, []);
 
-  const handleToggleStatus = async (e, player) => {
-    e.stopPropagation(); // prevent navigating to profile
-    const newStatus = player.status === "active" ? "inactive" : "active";
-    try {
-      await api.patch(`/users/${player.id}/status`, { status: newStatus });
-      fetchPlayers();
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
   const visible = allPlayers.filter(p =>
     showInactive ? p.status === "inactive" : p.status === "active"
   );
@@ -85,19 +74,23 @@ export default function Players() {
                 </span>
 
                 {/* Info */}
-             <div className="flex-1">
-  <p className="font-bold text-white">
-    {p.shirtNumber ? <span className="text-brand-orange">#{p.shirtNumber} </span> : ""}
-    {p.name}
-    {p.id === user?.id && <span className="text-xs text-gray-400 ml-2">(you)</span>}
-  </p>
-  <p className="text-gray-400 text-xs mt-0.5">
-    {p.attendanceCount} games · {p.totalRatings} ratings
-  </p>
-</div>
+                <div className="flex-1">
+                  <p className="font-bold text-white">
+                    {p.shirtNumber ? <span className="text-brand-orange">#{p.shirtNumber} </span> : ""}
+                    {p.name}
+                    {p.id === user?.id && <span className="text-xs text-gray-400 ml-2">(you)</span>}
+                  </p>
+                  <p className="text-gray-400 text-xs mt-0.5">{p.totalRatings} ratings</p>
+                </div>
+
+                {/* Attendance count */}
+                <div className="text-center w-12">
+                  <p className="text-lg font-bold text-blue-400">{p.attendanceCount}</p>
+                  <p className="text-gray-500 text-xs">games</p>
+                </div>
 
                 {/* Overall score */}
-                <div className="text-right mr-2">
+                <div className="text-right w-12">
                   <p className={`text-2xl font-bold ${
                     p.averages?.overall >= 8 ? "text-green-400" :
                     p.averages?.overall >= 5 ? "text-yellow-400" : "text-gray-400"
@@ -106,19 +99,6 @@ export default function Players() {
                   </p>
                   <p className="text-gray-500 text-xs">overall</p>
                 </div>
-
-                {/* Admin status toggle */}
-                {user?.role === "admin" && user.id !== p.id && (
-                  <button
-                    onClick={(e) => handleToggleStatus(e, p)}
-                    className={`text-xs font-bold px-3 py-1.5 rounded-full transition shrink-0 ${
-                      p.status === "active"
-                        ? "bg-red-900 text-red-300 hover:bg-red-800"
-                        : "bg-green-900 text-green-300 hover:bg-green-800"
-                    }`}>
-                    {p.status === "active" ? "Deactivate" : "Activate"}
-                  </button>
-                )}
               </div>
             ))}
           </div>
