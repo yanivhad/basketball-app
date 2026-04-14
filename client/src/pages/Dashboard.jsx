@@ -5,6 +5,7 @@ import api from "../api/axios";
 import SessionCard from "../components/SessionCard";
 import CreateSessionModal from "../components/CreateSessionModal";
 import PendingRatingBanner from "../components/PendingRatingBanner";
+import GameTimer from "../components/GameTimer";
 
 function CardSkeleton() {
   return (
@@ -64,6 +65,9 @@ export default function Dashboard() {
 
         {/* Pending rating banner */}
         <PendingRatingBanner />
+
+        {/* Game Timer */}
+        <GameTimer />
 
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
