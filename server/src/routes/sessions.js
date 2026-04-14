@@ -46,14 +46,14 @@ router.post("/", requireAuth, async (req, res) => {
 router.patch("/:id/complete", requireAuth, async (req, res) => {
   const { actualPlayerIds } = req.body; // array of user IDs who actually showed up
   try {
-    const session = await prisma.session.findUnique({ where: { id: parseInt(req.params.id) } });
-    if (!session) return res.status(404).json({ error: "Session not found" });
-    if (session.createdById !== req.user.userId)
+    const sessionId = parseInt(req.params.id);
+    const existing = await prisma.session.findUnique({ where: { id: sessionId } });
+    if (!existing) return res.status(404).json({ error: "Session not found" });
+    if (existing.createdById !== req.user.userId)
       return res.status(403).json({ error: "Only the session creator can do this" });
+
     // Update all attendance records for this session
-    const attendance = await prisma.attendance.findMany({
-      where: { sessionId: parseInt(req.params.id) },
-    });
+    const attendance = await prisma.attendance.findMany({ where: { sessionId } });
 
     for (const a of attendance) {
       await prisma.attendance.update({
@@ -65,14 +65,14 @@ router.patch("/:id/complete", requireAuth, async (req, res) => {
     // Also create attendance records for anyone who showed up but didn't confirm
     for (const userId of actualPlayerIds) {
       await prisma.attendance.upsert({
-        where: { sessionId_userId: { sessionId: parseInt(req.params.id), userId } },
+        where: { sessionId_userId: { sessionId, userId } },
         update: { actuallyPlayed: true },
-        create: { sessionId: parseInt(req.params.id), userId, confirmed: false, actuallyPlayed: true },
+        create: { sessionId, userId, confirmed: false, actuallyPlayed: true },
       });
     }
 
     const session = await prisma.session.update({
-      where: { id: parseInt(req.params.id) },
+      where: { id: sessionId },
       data: { status: "completed" },
     });
     res.json({ message: "Session marked as completed ✅", session });
