@@ -27,15 +27,6 @@ export default function SessionCard({ session, currentUser, onAttend, onRefresh 
       .catch(() => setTeams([]));
   }, [session.id]);
 
-  const handleComplete = async () => {
-    try {
-      await api.patch(`/sessions/${session.id}/complete`);
-      onRefresh();
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
   const handleReopen = async () => {
     try {
       await api.patch(`/sessions/${session.id}/reopen`);
@@ -43,6 +34,39 @@ export default function SessionCard({ session, currentUser, onAttend, onRefresh 
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const handleShareWhatsApp = () => {
+    const date = new Date(session.date).toLocaleDateString("en-GB", {
+      weekday: "long", day: "numeric", month: "long", timeZone: "Asia/Jerusalem",
+    });
+    const time = new Date(session.date).toLocaleTimeString("en-GB", {
+      hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem",
+    });
+    const playerList = attendees.length
+      ? attendees.map(a => `• ${a.user.shirtNumber ? `#${a.user.shirtNumber} ` : ""}${a.user.name}`).join("\n")
+      : "Nobody yet — be the first!";
+    const spotsLine = session.maxPlayers
+      ? `👥 ${attendees.length}/${session.maxPlayers} spots filled`
+      : `👥 ${attendees.length} player${attendees.length !== 1 ? "s" : ""} in`;
+    const appUrl = window.location.origin;
+
+    const msg = [
+      "🏀 *Game Night!*",
+      "",
+      `📅 ${date}`,
+      `🕗 ${time}`,
+      session.location ? `📍 ${session.location}` : null,
+      spotsLine,
+      "",
+      "*Who's in:*",
+      playerList,
+      "",
+      "Not registered yet? Join here 👇",
+      appUrl,
+    ].filter(l => l !== null).join("\n");
+
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
   return (
@@ -114,31 +138,39 @@ export default function SessionCard({ session, currentUser, onAttend, onRefresh 
 
       {/* Actions */}
       {isUpcoming && (
-        <div className="flex gap-2">
-          <button
-            onClick={() => onAttend(session.id, !isAttending)}
-            className={`flex-1 font-bold py-2 rounded-xl text-sm transition ${
-              isAttending
-                ? "bg-gray-700 hover:bg-gray-600 text-white"
-                : "bg-brand-orange hover:bg-orange-600 text-white"
-            }`}
-          >
-            {isAttending ? "I'm out 😔" : "I'm in! 🙌"}
-          </button>
-          <button
-            onClick={() => navigate(`/teams/${session.id}`)}
-            className="bg-blue-700 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-xl text-sm transition"
-          >
-            🎲 Teams
-          </button>
-          {currentUser?.id === session.createdById && (
+        <div className="space-y-2">
+          <div className="flex gap-2">
             <button
-              onClick={() => setShowModal(true)}
-              className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-xl text-sm transition"
+              onClick={() => onAttend(session.id, !isAttending)}
+              className={`flex-1 font-bold py-2 rounded-xl text-sm transition ${
+                isAttending
+                  ? "bg-gray-700 hover:bg-gray-600 text-white"
+                  : "bg-brand-orange hover:bg-orange-600 text-white"
+              }`}
             >
-              ✅
+              {isAttending ? "I'm out 😔" : "I'm in! 🙌"}
             </button>
-          )}
+            <button
+              onClick={() => navigate(`/teams/${session.id}`)}
+              className="bg-blue-700 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-xl text-sm transition"
+            >
+              🎲 Teams
+            </button>
+            {currentUser?.id === session.createdById && (
+              <button
+                onClick={() => setShowModal(true)}
+                className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-xl text-sm transition"
+              >
+                ✅
+              </button>
+            )}
+          </div>
+          <button
+            onClick={handleShareWhatsApp}
+            className="w-full bg-green-700 hover:bg-green-600 text-white font-bold py-2 rounded-xl text-sm transition"
+          >
+            📲 Invite via WhatsApp
+          </button>
         </div>
       )}
       {!isUpcoming && (
