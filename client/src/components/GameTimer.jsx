@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 
 const DEFAULT_MINUTES = 10;
 const PRESET_MINUTES = [5, 10, 15, 20];
@@ -20,25 +20,21 @@ function beep(frequency, duration, volume = 0.5, type = "sine") {
   } catch (_) {}
 }
 
-// 2-min warning: two medium beeps (C5)
 function playTwoMinWarning() {
   beep(523, 0.25, 0.6);
   setTimeout(() => beep(523, 0.25, 0.6), 350);
 }
 
-// 1-min warning: three urgent beeps (G5)
 function playOneMinWarning() {
   beep(784, 0.25, 0.7);
   setTimeout(() => beep(784, 0.25, 0.7), 350);
   setTimeout(() => beep(784, 0.25, 0.7), 700);
 }
 
-// Last-10-sec tick: short click (E5)
 function playTick() {
   beep(660, 0.08, 0.45, "square");
 }
 
-// Time's up: descending alarm (C6 → A5 → C6)
 function playTimeUp() {
   beep(1047, 0.4, 0.85);
   setTimeout(() => beep(880, 0.4, 0.85), 450);
@@ -52,20 +48,28 @@ export default function GameTimer() {
   const [running, setRunning] = useState(false);
   const [done, setDone] = useState(false);
 
+  // All mutable timer state lives in refs so closures never go stale
   const remainingRef = useRef(DEFAULT_MINUTES * 60);
-  const alertedRef = useRef({ twoMin: false, oneMin: false, tenSec: new Set() });
-  const intervalRef = useRef(null);
+  const alertedRef   = useRef({ twoMin: false, oneMin: false, tenSec: new Set() });
+  const intervalRef  = useRef(null);
+  const runningRef   = useRef(false);
+  const startWallRef = useRef(null); // Date.now() when timer last started/resumed
+  const startRemRef  = useRef(null); // remaining at that moment
 
-  const tick = () => {
-    const next = remainingRef.current - 1;
-    remainingRef.current = Math.max(next, 0);
-    setRemaining(remainingRef.current);
+  // Compute true remaining from wall-clock time (unaffected by background throttling)
+  function computeNext() {
+    if (!startWallRef.current) return remainingRef.current;
+    const elapsed = Math.floor((Date.now() - startWallRef.current) / 1000);
+    return Math.max(startRemRef.current - elapsed, 0);
+  }
 
-    if (next === 120 && !alertedRef.current.twoMin) {
+  // Fire any threshold alerts that apply when transitioning prev→next
+  function checkAlerts(prev, next) {
+    if (prev > 120 && next <= 120 && !alertedRef.current.twoMin) {
       alertedRef.current.twoMin = true;
       playTwoMinWarning();
     }
-    if (next === 60 && !alertedRef.current.oneMin) {
+    if (prev > 60 && next <= 60 && !alertedRef.current.oneMin) {
       alertedRef.current.oneMin = true;
       playOneMinWarning();
     }
@@ -73,22 +77,55 @@ export default function GameTimer() {
       alertedRef.current.tenSec.add(next);
       playTick();
     }
-    if (next === 0) {
+    if (next === 0 && prev > 0) {
       playTimeUp();
+    }
+  }
+
+  // Called by both setInterval and visibilitychange — safe to call anytime
+  function syncTimer() {
+    const next = computeNext();
+    const prev = remainingRef.current;
+    if (next === prev) return; // nothing changed yet
+    remainingRef.current = next;
+    setRemaining(next);
+    checkAlerts(prev, next);
+    if (next === 0) {
       clearInterval(intervalRef.current);
+      runningRef.current = false;
       setRunning(false);
       setDone(true);
     }
-  };
+  }
+
+  // Re-sync immediately when the tab/app comes back to foreground
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === "visible" && runningRef.current) {
+        syncTimer();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleStartPause = () => {
     if (running) {
+      // Snapshot the true remaining before pausing so Resume is accurate
+      const current = computeNext();
+      remainingRef.current = current;
+      setRemaining(current);
       clearInterval(intervalRef.current);
+      runningRef.current = false;
       setRunning(false);
     } else {
       if (remainingRef.current === 0) return;
-      intervalRef.current = setInterval(tick, 1000);
+      startWallRef.current = Date.now();
+      startRemRef.current  = remainingRef.current;
+      runningRef.current   = true;
       setRunning(true);
+      // 500 ms interval for a responsive display; accuracy comes from wall-clock
+      intervalRef.current = setInterval(syncTimer, 500);
     }
   };
 
@@ -96,6 +133,9 @@ export default function GameTimer() {
     clearInterval(intervalRef.current);
     const secs = mins * 60;
     remainingRef.current = secs;
+    startWallRef.current = null;
+    startRemRef.current  = null;
+    runningRef.current   = false;
     setRemaining(secs);
     setTotalSeconds(secs);
     setRunning(false);
@@ -107,19 +147,19 @@ export default function GameTimer() {
   const seconds = remaining % 60;
 
   const isLastTen = remaining <= 10 && remaining > 0;
-  const isCritical = remaining <= 60 && remaining > 0;    // last minute (orange)
-  const isWarning  = remaining <= 120 && remaining > 60;  // 2-min zone (yellow)
+  const isCritical = remaining <= 60 && remaining > 0;
+  const isWarning  = remaining <= 120 && remaining > 60;
 
-  const timeColor = done       ? "text-gray-500"
-    : isLastTen                ? "text-red-400"
-    : isCritical               ? "text-orange-400"
-    : isWarning                ? "text-yellow-400"
-    :                            "text-white";
+  const timeColor = done      ? "text-gray-500"
+    : isLastTen               ? "text-red-400"
+    : isCritical              ? "text-orange-400"
+    : isWarning               ? "text-yellow-400"
+    :                           "text-white";
 
-  const statusText = done        ? "Time's up! 🔔"
-    : isLastTen && running       ? `⚡ ${remaining} sec!`
-    : isCritical && !isLastTen   ? "Last minute!"
-    : isWarning                  ? "2-min warning"
+  const statusText = done               ? "Time's up! 🔔"
+    : isLastTen && running              ? `⚡ ${remaining} sec!`
+    : isCritical && !isLastTen          ? "Last minute!"
+    : isWarning                         ? "2-min warning"
     : null;
 
   const statusColor = done || isLastTen ? "text-red-400"
