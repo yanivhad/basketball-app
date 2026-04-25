@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import useAuthStore from "../store/useAuthStore";
@@ -10,35 +10,72 @@ const TEAM_COLORS = [
   { light: "bg-purple-900/40", text: "text-purple-300", label: "Team 4 🟣" },
 ];
 
-function balanceTeams(players, playersPerTeam) {
-  const numTeams = Math.floor(players.length / playersPerTeam);
-  if (numTeams < 2) {
-    return { teams: [players], bench: [] };
+// Returns a canonical string key for a set of teams (order-independent)
+function teamsKey(teams) {
+  return teams
+    .map(t => t.map(p => p.id).sort().join(","))
+    .sort()
+    .join("|");
+}
+
+// Variance of team average scores — lower = more balanced
+function teamsVariance(teams) {
+  const avgs = teams.map(t => t.reduce((s, p) => s + p._score, 0) / t.length);
+  const mean = avgs.reduce((s, v) => s + v, 0) / avgs.length;
+  return avgs.reduce((s, v) => s + (v - mean) ** 2, 0);
+}
+
+// Fisher-Yates shuffle in place
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
   }
+  return arr;
+}
+
+function balanceTeams(players, playersPerTeam, prevKey = null) {
+  const numTeams = Math.floor(players.length / playersPerTeam);
+  if (numTeams < 2) return { teams: [players], bench: [] };
 
   const teamPlayers = players.slice(0, numTeams * playersPerTeam);
   const bench = players.slice(numTeams * playersPerTeam);
 
-  const withScore = teamPlayers.map(function(p) {
-    var skill = parseFloat(p.averages ? p.averages.overall : 5) || 5;
-    var weight = parseFloat(p.weight) || 75;
-    var height = parseFloat(p.height) || 175;
-    var physicalScore = ((weight - 50) / 70 + (height - 160) / 50) * 2.5;
-    return Object.assign({}, p, { _score: skill + physicalScore });
-  });
+  // Score by skill rating only (what users can see and relate to)
+  const scored = teamPlayers.map(p => ({
+    ...p,
+    _score: parseFloat(p.averages?.overall) || 5,
+  })).sort((a, b) => b._score - a._score);
 
-  var sorted = withScore.slice().sort(function(a, b) { return b._score - a._score; });
-  var teams = [];
-  for (var t = 0; t < numTeams; t++) { teams.push([]); }
+  // Each attempt: shuffle within skill tiers so balance is preserved
+  // but team composition differs each time
+  function attempt() {
+    const out = [];
+    for (let t = 0; t < Math.ceil(scored.length / numTeams); t++) {
+      const tier = scored.slice(t * numTeams, (t + 1) * numTeams).slice();
+      shuffle(tier);
+      out.push(...tier);
+    }
+    const teams = Array.from({ length: numTeams }, () => []);
+    out.forEach((p, i) => teams[i % numTeams].push(p));
+    return teams;
+  }
 
-  sorted.forEach(function(p, i) {
-    var round = Math.floor(i / numTeams);
-    var pos = i % numTeams;
-    var slot = round % 2 === 0 ? pos : numTeams - 1 - pos;
-    teams[slot].push(p);
-  });
+  // Run 300 attempts, keep the most balanced arrangement that differs from prev
+  let best = null;
+  let bestVar = Infinity;
 
-  return { teams: teams, bench: bench };
+  for (let i = 0; i < 300; i++) {
+    const candidate = attempt();
+    const key = teamsKey(candidate);
+    const v = teamsVariance(candidate);
+    if (key !== prevKey && v < bestVar) {
+      bestVar = v;
+      best = candidate;
+    }
+  }
+
+  return { teams: best || attempt(), bench };
 }
 
 function teamAvg(team) {
@@ -61,11 +98,10 @@ export default function TeamPicker() {
   const [playersPerTeam, setPlayersPerTeam] = useState(5);
   const [teams, setTeams] = useState(null);
   const [bench, setBench] = useState([]);
-  const [shuffles, setShuffles] = useState(0);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const MAX_SHUFFLES = 2;
+  const prevKeyRef = useRef(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -96,16 +132,17 @@ export default function TeamPicker() {
     setSelected(function(s) {
       return s.includes(id) ? s.filter(function(x) { return x !== id; }) : [...s, id];
     });
+    prevKeyRef.current = null;
     setTeams(null);
     setSaved(false);
   }
 
   function generate() {
     const playing = allPlayers.filter(function(p) { return selected.includes(p.id); });
-    const result = balanceTeams(playing, playersPerTeam);
+    const result = balanceTeams(playing, playersPerTeam, prevKeyRef.current);
+    prevKeyRef.current = teamsKey(result.teams);
     setTeams(result.teams);
     setBench(result.bench);
-    setShuffles(function(s) { return s + 1; });
     setSaved(false);
   }
 
@@ -191,7 +228,7 @@ export default function TeamPicker() {
           <div className="flex gap-2">
             {[3, 4, 5].map(function(n) {
               return (
-                <button key={n} onClick={() => { setPlayersPerTeam(n); setTeams(null); setSaved(false); }}
+                <button key={n} onClick={() => { setPlayersPerTeam(n); prevKeyRef.current = null; setTeams(null); setSaved(false); }}
                   className={"flex-1 py-2 rounded-xl text-sm font-bold transition " + (playersPerTeam === n ? "bg-brand-orange text-white" : "bg-gray-700 text-gray-400 hover:text-white")}>
                   {n}v{n}
                 </button>
@@ -201,9 +238,9 @@ export default function TeamPicker() {
         </div>
 
         <button onClick={generate}
-          disabled={selected.length < playersPerTeam * 2 || shuffles > MAX_SHUFFLES}
+          disabled={selected.length < playersPerTeam * 2}
           className="w-full bg-brand-orange hover:bg-orange-600 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition text-lg">
-          {teams ? "Shuffle Again (" + (MAX_SHUFFLES - shuffles + 1) + " left)" : "Make Teams!"}
+          {teams ? "🔀 Shuffle Again" : "Make Teams!"}
         </button>
 
         {teams && (
