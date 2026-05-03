@@ -3,11 +3,23 @@ import { useState, useRef, useEffect } from "react";
 const DEFAULT_MINUTES = 10;
 const PRESET_MINUTES = [5, 10, 15, 20];
 
-/* ── Web Audio helpers ── */
+/* ── Singleton AudioContext ──────────────────────────────────────────────────
+   Browsers cap concurrent AudioContext instances and require the first one to
+   be created inside a user-gesture handler. We create it lazily on first use
+   (which always happens via a button click) and reuse it forever.             */
+let sharedCtx = null;
+function getCtx() {
+  if (!sharedCtx || sharedCtx.state === "closed") {
+    sharedCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (sharedCtx.state === "suspended") sharedCtx.resume();
+  return sharedCtx;
+}
+
 function beep(frequency, duration, volume = 0.5, type = "sine") {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
+    const ctx = getCtx();
+    const osc  = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain);
     gain.connect(ctx.destination);
@@ -37,33 +49,56 @@ function playTick() {
 
 function playTimeUp() {
   beep(1047, 0.4, 0.85);
-  setTimeout(() => beep(880, 0.4, 0.85), 450);
-  setTimeout(() => beep(1047, 0.7, 0.9), 900);
+  setTimeout(() => beep(880,  0.4, 0.85), 450);
+  setTimeout(() => beep(1047, 0.7, 0.9),  900);
 }
 
 /* ── Component ── */
 export default function GameTimer() {
-  const [remaining, setRemaining] = useState(DEFAULT_MINUTES * 60);
+  const [remaining, setRemaining]     = useState(DEFAULT_MINUTES * 60);
   const [totalSeconds, setTotalSeconds] = useState(DEFAULT_MINUTES * 60);
-  const [running, setRunning] = useState(false);
-  const [done, setDone] = useState(false);
+  const [running, setRunning]         = useState(false);
+  const [done, setDone]               = useState(false);
+  const [wakeLocked, setWakeLocked]   = useState(false);
 
-  // All mutable timer state lives in refs so closures never go stale
-  const remainingRef = useRef(DEFAULT_MINUTES * 60);
-  const alertedRef   = useRef({ twoMin: false, oneMin: false, tenSec: new Set() });
-  const intervalRef  = useRef(null);
-  const runningRef   = useRef(false);
-  const startWallRef = useRef(null); // Date.now() when timer last started/resumed
-  const startRemRef  = useRef(null); // remaining at that moment
+  const remainingRef  = useRef(DEFAULT_MINUTES * 60);
+  const alertedRef    = useRef({ twoMin: false, oneMin: false, tenSec: new Set() });
+  const intervalRef   = useRef(null);
+  const runningRef    = useRef(false);
+  const startWallRef  = useRef(null);
+  const startRemRef   = useRef(null);
+  const wakeLockRef   = useRef(null);
 
-  // Compute true remaining from wall-clock time (unaffected by background throttling)
+  /* ── Wake Lock ─────────────────────────────────────────────────────────────
+     Keeps the screen alive so the browser never backgrounds while the timer
+     is running. Released automatically when the user stops/resets.           */
+  async function acquireWakeLock() {
+    if (!("wakeLock" in navigator)) return;
+    try {
+      wakeLockRef.current = await navigator.wakeLock.request("screen");
+      setWakeLocked(true);
+      wakeLockRef.current.addEventListener("release", () => setWakeLocked(false));
+    } catch (_) {}
+  }
+
+  function releaseWakeLock() {
+    if (wakeLockRef.current) {
+      wakeLockRef.current.release().catch(() => {});
+      wakeLockRef.current = null;
+      setWakeLocked(false);
+    }
+  }
+
+  /* ── Time calculation ──────────────────────────────────────────────────── */
   function computeNext() {
     if (!startWallRef.current) return remainingRef.current;
     const elapsed = Math.floor((Date.now() - startWallRef.current) / 1000);
     return Math.max(startRemRef.current - elapsed, 0);
   }
 
-  // Fire any threshold alerts that apply when transitioning prev→next
+  /* ── Alert logic ───────────────────────────────────────────────────────────
+     Handles jumps (e.g. phone was locked briefly despite wake lock): plays
+     every missed tick in the last 10 seconds, staggered so they don't overlap. */
   function checkAlerts(prev, next) {
     if (prev > 120 && next <= 120 && !alertedRef.current.twoMin) {
       alertedRef.current.twoMin = true;
@@ -73,64 +108,74 @@ export default function GameTimer() {
       alertedRef.current.oneMin = true;
       playOneMinWarning();
     }
-    if (next > 0 && next <= 10 && !alertedRef.current.tenSec.has(next)) {
-      alertedRef.current.tenSec.add(next);
-      playTick();
+    // Play every missed tick in the last 10 seconds (catches up after a gap)
+    const hi = Math.min(prev - 1, 10);
+    const lo = Math.max(next, 1);
+    for (let s = hi; s >= lo; s--) {
+      if (!alertedRef.current.tenSec.has(s)) {
+        alertedRef.current.tenSec.add(s);
+        const delay = (hi - s) * 150;
+        delay === 0 ? playTick() : setTimeout(playTick, delay);
+      }
     }
-    if (next === 0 && prev > 0) {
-      playTimeUp();
-    }
+    if (next === 0 && prev > 0) playTimeUp();
   }
 
-  // Called by both setInterval and visibilitychange — safe to call anytime
+  /* ── Core sync ─────────────────────────────────────────────────────────── */
   function syncTimer() {
     const next = computeNext();
     const prev = remainingRef.current;
-    if (next === prev) return; // nothing changed yet
+    if (next === prev) return;
     remainingRef.current = next;
     setRemaining(next);
     checkAlerts(prev, next);
     if (next === 0) {
       clearInterval(intervalRef.current);
+      releaseWakeLock();
       runningRef.current = false;
       setRunning(false);
       setDone(true);
     }
   }
 
-  // Re-sync immediately when the tab/app comes back to foreground
+  /* ── Visibility change: re-sync + re-acquire wake lock on return ──────── */
   useEffect(() => {
     const onVisibility = () => {
       if (document.visibilityState === "visible" && runningRef.current) {
         syncTimer();
+        acquireWakeLock(); // re-acquire if OS released it (e.g. manual lock)
       }
     };
     document.addEventListener("visibilitychange", onVisibility);
     return () => document.removeEventListener("visibilitychange", onVisibility);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  /* ── Controls ──────────────────────────────────────────────────────────── */
   const handleStartPause = () => {
     if (running) {
-      // Snapshot the true remaining before pausing so Resume is accurate
       const current = computeNext();
       remainingRef.current = current;
       setRemaining(current);
       clearInterval(intervalRef.current);
+      releaseWakeLock();
       runningRef.current = false;
       setRunning(false);
     } else {
       if (remainingRef.current === 0) return;
+      // Create/resume AudioContext inside the user gesture so iOS allows it
+      getCtx();
       startWallRef.current = Date.now();
       startRemRef.current  = remainingRef.current;
       runningRef.current   = true;
       setRunning(true);
-      // 500 ms interval for a responsive display; accuracy comes from wall-clock
+      acquireWakeLock();
       intervalRef.current = setInterval(syncTimer, 500);
     }
   };
 
   const handleReset = (mins) => {
     clearInterval(intervalRef.current);
+    releaseWakeLock();
     const secs = mins * 60;
     remainingRef.current = secs;
     startWallRef.current = null;
@@ -143,23 +188,22 @@ export default function GameTimer() {
     alertedRef.current = { twoMin: false, oneMin: false, tenSec: new Set() };
   };
 
-  const minutes = Math.floor(remaining / 60);
-  const seconds = remaining % 60;
-
-  const isLastTen = remaining <= 10 && remaining > 0;
+  const minutes  = Math.floor(remaining / 60);
+  const seconds  = remaining % 60;
+  const isLastTen  = remaining <= 10 && remaining > 0;
   const isCritical = remaining <= 60 && remaining > 0;
   const isWarning  = remaining <= 120 && remaining > 60;
 
-  const timeColor = done      ? "text-gray-500"
+  const timeColor = done       ? "text-gray-500"
     : isLastTen               ? "text-red-400"
     : isCritical              ? "text-orange-400"
     : isWarning               ? "text-yellow-400"
     :                           "text-white";
 
-  const statusText = done               ? "Time's up! 🔔"
-    : isLastTen && running              ? `⚡ ${remaining} sec!`
-    : isCritical && !isLastTen          ? "Last minute!"
-    : isWarning                         ? "2-min warning"
+  const statusText = done              ? "Time's up! 🔔"
+    : isLastTen && running             ? `⚡ ${remaining} sec!`
+    : isCritical && !isLastTen         ? "Last minute!"
+    : isWarning                        ? "2-min warning"
     : null;
 
   const statusColor = done || isLastTen ? "text-red-400"
@@ -172,7 +216,12 @@ export default function GameTimer() {
     }`}>
       {/* Header row */}
       <div className="flex items-center justify-between mb-3">
-        <h2 className="font-bold text-lg">Game Timer ⏱️</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="font-bold text-lg">Game Timer ⏱️</h2>
+          {wakeLocked && (
+            <span className="text-xs text-green-400 font-bold" title="Screen kept awake">🔒</span>
+          )}
+        </div>
         <div className="flex gap-1">
           {PRESET_MINUTES.map(m => (
             <button key={m} onClick={() => handleReset(m)}
