@@ -21,6 +21,8 @@ export default function PlayerProfile() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    setPlayer(null);
+    setLoading(true);
     api.get(`/users/${id}`)
       .then(({ data }) => setPlayer(data))
       .catch(console.error)
@@ -38,10 +40,8 @@ export default function PlayerProfile() {
 
   return (
     <div className="min-h-screen bg-brand-dark text-white">
-      <nav className="flex items-center justify-between px-6 py-4 bg-brand-card shadow">
+      <nav className="flex items-center px-6 py-4 bg-brand-card shadow">
         <button onClick={() => navigate(-1)} className="text-gray-400 hover:text-white transition">← Back</button>
-        <span className="font-bold">Player Profile</span>
-        <span />
       </nav>
 
       <div className="max-w-lg mx-auto px-4 py-8 space-y-5">
