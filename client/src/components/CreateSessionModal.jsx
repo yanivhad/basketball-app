@@ -13,7 +13,7 @@ export default function CreateSessionModal({ onClose, onCreated }) {
     setLoading(true);
     try {
       await api.post("/sessions", {
-        date: `${form.date}T${form.time}:00`,
+        date: new Date(`${form.date}T${form.time}:00`).toISOString(),
         location: form.location || undefined,
         maxPlayers: form.maxPlayers || undefined,
       });
