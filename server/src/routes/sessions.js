@@ -8,6 +8,7 @@ const router = express.Router();
 router.get("/", requireAuth, async (req, res) => {
   try {
     const sessions = await prisma.session.findMany({
+      where: { status: "upcoming" },
       orderBy: { date: "desc" },
       include: {
         createdBy: { select: { name: true } },
