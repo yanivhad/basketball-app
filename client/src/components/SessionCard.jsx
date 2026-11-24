@@ -156,14 +156,12 @@ export default function SessionCard({ session, currentUser, onAttend, onRefresh 
             >
               🎲 Teams
             </button>
-            {currentUser?.id === session.createdById && (
-              <button
-                onClick={() => setShowModal(true)}
-                className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-xl text-sm transition"
-              >
-                ✅
-              </button>
-            )}
+            <button
+              onClick={() => setShowModal(true)}
+              className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-xl text-sm transition"
+            >
+              ✅
+            </button>
           </div>
           <button
             onClick={handleShareWhatsApp}
