@@ -43,15 +43,13 @@ router.post("/", requireAuth, async (req, res) => {
   }
 });
 
-// PATCH /api/sessions/:id/complete — mark session as completed (creator only)
+// PATCH /api/sessions/:id/complete — mark session as completed (any signed-in player)
 router.patch("/:id/complete", requireAuth, async (req, res) => {
   const { actualPlayerIds } = req.body; // array of user IDs who actually showed up
   try {
     const sessionId = parseInt(req.params.id);
     const existing = await prisma.session.findUnique({ where: { id: sessionId } });
     if (!existing) return res.status(404).json({ error: "Session not found" });
-    if (existing.createdById !== req.user.userId)
-      return res.status(403).json({ error: "Only the session creator can do this" });
 
     // Update all attendance records for this session
     const attendance = await prisma.attendance.findMany({ where: { sessionId } });
